@@ -471,6 +471,78 @@ app.delete("/workflows/:id", async (req, res) => {
   }
 });
 
+// --------------------- SCHEDULE ROUTES ---------------------
+app.get("/schedules", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const [rows] = await connection.execute("SELECT * FROM schedules ORDER BY time ASC");
+    connection.release();
+    return res.json(rows);
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/schedules", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const q = `
+      INSERT INTO schedules (title, time, color)
+      VALUES (?, ?, ?)
+    `;
+    const values = [
+      req.body.title,
+      req.body.time || req.body.event_time, // ✅ Fix here
+      req.body.color,
+    ];
+    const [result] = await connection.execute(q, values);
+    connection.release();
+    return res.json({ message: "Event added successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+
+app.put("/schedules/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const scheduleId = req.params.id;
+    const q = `
+      UPDATE schedules
+      SET title = ?, time = ?, color = ?
+      WHERE schedule_id = ?
+    `;
+    const values = [
+      req.body.title,
+      req.body.time || req.body.event_time, // ✅ Fix here too
+      req.body.color,
+    ];
+    const [result] = await connection.execute(q, [...values, scheduleId]);
+    connection.release();
+    return res.json({ message: "Event updated successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+
+app.delete("/schedules/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const scheduleId = req.params.id;
+    const q = "DELETE FROM schedules WHERE schedule_id = ?";
+    const [result] = await connection.execute(q, [scheduleId]);
+    connection.release();
+    return res.json({ message: "Event deleted successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 
 
