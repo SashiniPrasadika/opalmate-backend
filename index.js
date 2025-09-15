@@ -612,6 +612,94 @@ app.delete("/client-meetings/:id", async (req, res) => {
 });
 
 
+// --------------------- RAW MATERIALS ROUTES ---------------------
+
+app.get("/rawmaterials", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const [rows] = await connection.execute("SELECT * FROM raw_materials");
+    connection.release();
+    return res.json(rows);
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Add a raw material
+// Add material
+app.post("/rawmaterials", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const q = `
+      INSERT INTO raw_materials 
+      (name, category, quantity, supplier, cost, status, last_updated)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      req.body.name,
+      req.body.category,
+      req.body.quantity,
+      req.body.supplier,
+      req.body.cost,
+      req.body.status,
+      new Date().toISOString().slice(0, 19).replace("T", " "),
+    ];
+    const [result] = await connection.execute(q, values);
+    connection.release();
+    res.json({ message: "Material added successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update material
+app.put("/rawmaterials/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const materialId = req.params.id;
+    const q = `
+      UPDATE raw_materials
+      SET name=?, category=?, quantity=?, supplier=?, cost=?, status=?, last_updated=?
+      WHERE material_id=?
+    `;
+    const values = [
+      req.body.name,
+      req.body.category,
+      req.body.quantity,
+      req.body.supplier,
+      req.body.cost,
+      req.body.status,
+      new Date().toISOString().slice(0, 19).replace("T", " "),
+      materialId,
+    ];
+    const [result] = await connection.execute(q, values);
+    connection.release();
+    res.json({ message: "Material updated successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// Delete a raw material
+app.delete("/rawmaterials/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const materialId = req.params.id;
+    const q = "DELETE FROM raw_materials WHERE material_id=?";
+    const [result] = await connection.execute(q, [materialId]);
+    connection.release();
+    return res.json({ message: "Material deleted successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+
 
 
 
