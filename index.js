@@ -700,6 +700,70 @@ app.delete("/rawmaterials/:id", async (req, res) => {
 });
 
 
+// Get all products
+app.get("/products", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const [rows] = await connection.execute("SELECT * FROM products ORDER BY created_at DESC");
+    connection.release();
+    res.json(rows);
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Add a product
+app.post("/products", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const q = `
+      INSERT INTO products (sku, name, category, price, stock, status)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    const sku = `SKU-${Date.now()}`;
+    const values = [sku, req.body.name, req.body.category, req.body.price, req.body.stock, req.body.status];
+    const [result] = await connection.execute(q, values);
+    connection.release();
+    res.json({ message: "Product added successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update a product
+app.put("/products/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const q = `
+      UPDATE products 
+      SET name=?, category=?, price=?, stock=?, status=? 
+      WHERE product_id=?
+    `;
+    const values = [req.body.name, req.body.category, req.body.price, req.body.stock, req.body.status, req.params.id];
+    const [result] = await connection.execute(q, values);
+    connection.release();
+    res.json({ message: "Product updated successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a product
+app.delete("/products/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const q = "DELETE FROM products WHERE product_id=?";
+    const [result] = await connection.execute(q, [req.params.id]);
+    connection.release();
+    res.json({ message: "Product deleted successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 
 
