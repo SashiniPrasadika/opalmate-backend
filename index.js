@@ -544,6 +544,74 @@ app.delete("/schedules/:id", async (req, res) => {
   }
 });
 
+// --------------------- CLIENT MEETINGS ---------------------
+app.get("/client-meetings", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const [rows] = await connection.execute("SELECT * FROM client_meetings ORDER BY date, time");
+    connection.release();
+    return res.json(rows);
+  } catch (err) {
+    console.error("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/client-meetings", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const { client, purpose, date, time, status, notes } = req.body;
+    const q = `
+      INSERT INTO client_meetings (client, purpose, date, time, status, notes)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    const values = [client, purpose, date, time, status, notes || null];
+    const [result] = await connection.execute(q, values);
+    connection.release();
+    return res.json({ message: "Meeting added successfully", result });
+  } catch (err) {
+    console.error("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/client-meetings/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const meetingId = req.params.id;
+    const { client, purpose, date, time, status, notes } = req.body;
+    const q = `
+      UPDATE client_meetings
+      SET client = ?, purpose = ?, date = ?, time = ?, status = ?, notes = ?
+      WHERE meeting_id = ?
+    `;
+    const values = [client, purpose, date, time, status, notes || null, meetingId];
+    const [result] = await connection.execute(q, values);
+    connection.release();
+    return res.json({ message: "Meeting updated successfully", result });
+  } catch (err) {
+    console.error("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/client-meetings/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const meetingId = req.params.id;
+    const [result] = await connection.execute(
+      "DELETE FROM client_meetings WHERE meeting_id = ?",
+      [meetingId]
+    );
+    connection.release();
+    return res.json({ message: "Meeting deleted successfully", result });
+  } catch (err) {
+    console.error("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+
 
 
 
