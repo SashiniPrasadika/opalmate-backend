@@ -114,7 +114,268 @@ app.delete("/customers/:id", async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
-// --------------------- supplier ROUTES ---------------------
+// --------------------- SUPPLIER ROUTES ---------------------
+
+// Get all suppliers
+app.get("/suppliers", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const [rows] = await connection.execute("SELECT * FROM suppliers");
+    connection.release();
+    return res.json(rows);
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Add a supplier
+app.post("/suppliers", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const q = `
+      INSERT INTO suppliers 
+      (supplier_name, category, status, contact_person, email, phone, location, rating)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      req.body.supplier_name,
+      req.body.category,
+      req.body.status,
+      req.body.contact_person,
+      req.body.email,
+      req.body.phone,
+      req.body.location,
+      req.body.rating ?? 0.0, // default 0.0 if not provided
+    ];
+
+    const [result] = await connection.execute(q, values);
+    connection.release();
+    return res.json({ message: "Supplier added successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Update a supplier
+app.put("/suppliers/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const supplierId = req.params.id;
+    const q = `
+      UPDATE suppliers 
+      SET supplier_name = ?, category = ?, status = ?, contact_person = ?, email = ?, phone = ?, location = ?, rating = ?
+      WHERE supplier_id = ?
+    `;
+    const values = [
+      req.body.supplier_name,
+      req.body.category,
+      req.body.status,
+      req.body.contact_person,
+      req.body.email,
+      req.body.phone,
+      req.body.location,
+      req.body.rating ?? 0.0,
+    ];
+
+    const [result] = await connection.execute(q, [...values, supplierId]);
+    connection.release();
+    return res.json({ message: "Supplier updated successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a supplier
+app.delete("/suppliers/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const supplierId = req.params.id;
+    const q = "DELETE FROM suppliers WHERE supplier_id = ?";
+
+    const [result] = await connection.execute(q, [supplierId]);
+    connection.release();
+    return res.json({ message: "Supplier deleted successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+// --------------------- EMPLOYEE ROUTES ---------------------
+// Get all employeess
+app.get("/employees", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const [rows] = await connection.execute("SELECT * FROM employees");
+    connection.release();
+    return res.json(rows);
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Add a employee
+app.post("/employees", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const q = `
+      INSERT INTO employees 
+      (name, role,department, email, phone, joining_date, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      req.body.name,
+      req.body.role,
+      req.body.department,
+      req.body.email,
+      req.body.phone,
+      req.body.joining_date,
+      req.body.is_active,
+      
+    ];
+
+    const [result] = await connection.execute(q, values);
+    connection.release();
+    return res.json({ message: "Employee added successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Update a employee
+app.put("/employees/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const employeeId = req.params.id;
+    const q = `
+      UPDATE employees 
+      SET name = ?, role = ?, department=?, email = ?, phone = ?, joining_date=?,  is_active=?
+      WHERE employee_id = ?
+    `;
+    const values = [
+        req.body.name,
+      req.body.role,
+      req.body.department,
+      req.body.email,
+      req.body.phone,
+      req.body.joining_date,
+      req.body.is_active,
+      
+      
+    ];
+
+    const [result] = await connection.execute(q, [...values, employeeId]);
+    connection.release();
+    return res.json({ message: "Employee updated successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a employee
+app.delete("/employees/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const employeeId = req.params.id;
+    const q = "DELETE FROM employees WHERE employee_id = ?";
+
+    const [result] = await connection.execute(q, [employeeId]);
+    connection.release();
+    return res.json({ message: "employee deleted successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 app.listen(5000, () => {
   console.log("Server running on port 5000");
