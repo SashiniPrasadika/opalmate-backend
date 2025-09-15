@@ -294,7 +294,182 @@ app.delete("/employees/:id", async (req, res) => {
 });
 
 
+// --------------------- WORKFLOW ROUTES ---------------------
 
+// Get all workflows with steps
+app.get("/workflows", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+
+    // Fetch workflows
+    const [workflows] = await connection.execute("SELECT * FROM workflows");
+
+    // Fetch all steps
+    const [steps] = await connection.execute("SELECT * FROM workflow_steps");
+
+    // Attach steps to corresponding workflow
+    const workflowsWithSteps = workflows.map((wf) => ({
+      ...wf,
+      steps: steps
+        .filter((step) => step.workflow_id === wf.workflow_id)
+        .sort((a, b) => a.step_order - b.step_order),
+    }));
+
+    connection.release();
+    return res.json(workflowsWithSteps);
+  } catch (err) {
+    console.error("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Get a single workflow by ID (with steps)
+app.get("/workflows/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const workflowId = req.params.id;
+
+    const [workflows] = await connection.execute(
+      "SELECT * FROM workflows WHERE workflow_id = ?",
+      [workflowId]
+    );
+
+    if (workflows.length === 0) {
+      connection.release();
+      return res.status(404).json({ message: "Workflow not found" });
+    }
+
+    const [steps] = await connection.execute(
+      "SELECT * FROM workflow_steps WHERE workflow_id = ? ORDER BY step_order",
+      [workflowId]
+    );
+
+    connection.release();
+
+    return res.json({ ...workflows[0], steps });
+  } catch (err) {
+    console.error("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Add a workflow (with optional steps)
+app.post("/workflows", async (req, res) => {
+  const { title, description, status, steps } = req.body;
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Insert main workflow
+    const [result] = await connection.execute(
+      `INSERT INTO workflows (title, description, status)
+       VALUES (?, ?, ?)`,
+      [title, description, status]
+    );
+
+    const workflowId = result.insertId;
+
+    // Insert steps if provided
+    if (Array.isArray(steps) && steps.length > 0) {
+      const stepValues = steps.map((step, index) => [
+        workflowId,
+        index + 1,
+        step,
+      ]);
+
+      await connection.query(
+        `INSERT INTO workflow_steps (workflow_id, step_order, step_name)
+         VALUES ?`,
+        [stepValues]
+      );
+    }
+
+    await connection.commit();
+    connection.release();
+
+    return res.json({ message: "Workflow created successfully", workflowId });
+  } catch (err) {
+    await connection.rollback();
+    connection.release();
+    console.error("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Update a workflow (and replace steps)
+app.put("/workflows/:id", async (req, res) => {
+  const workflowId = req.params.id;
+  const { title, description, status, steps } = req.body;
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Update workflow details
+    await connection.execute(
+      `UPDATE workflows
+       SET title = ?, description = ?, status = ?
+       WHERE workflow_id = ?`,
+      [title, description, status, workflowId]
+    );
+
+    // Delete old steps
+    await connection.execute(
+      "DELETE FROM workflow_steps WHERE workflow_id = ?",
+      [workflowId]
+    );
+
+    // Insert new steps (if provided)
+    if (Array.isArray(steps) && steps.length > 0) {
+      const stepValues = steps.map((step, index) => [
+        workflowId,
+        index + 1,
+        step,
+      ]);
+
+      await connection.query(
+        `INSERT INTO workflow_steps (workflow_id, step_order, step_name)
+         VALUES ?`,
+        [stepValues]
+      );
+    }
+
+    await connection.commit();
+    connection.release();
+
+    return res.json({ message: "Workflow updated successfully" });
+  } catch (err) {
+    await connection.rollback();
+    connection.release();
+    console.error("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a workflow (steps will be deleted via ON DELETE CASCADE)
+app.delete("/workflows/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const workflowId = req.params.id;
+
+    const [result] = await connection.execute(
+      "DELETE FROM workflows WHERE workflow_id = ?",
+      [workflowId]
+    );
+
+    connection.release();
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Workflow not found" });
+    }
+
+    return res.json({ message: "Workflow deleted successfully" });
+  } catch (err) {
+    console.error("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 
 
