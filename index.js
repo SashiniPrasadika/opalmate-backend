@@ -765,6 +765,91 @@ app.delete("/products/:id", async (req, res) => {
   }
 });
 
+// Get all stock alerts
+app.get("/stock-alerts", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const [rows] = await connection.execute("SELECT * FROM stock_alerts ORDER BY created_at DESC");
+    connection.release();
+    return res.json(rows);
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Add new alert
+app.post("/stock-alerts", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const q = `
+      INSERT INTO stock_alerts (product, current_stock, threshold, alert_level)
+      VALUES (?, ?, ?, ?)
+    `;
+    const values = [
+      req.body.product,
+      req.body.current_stock ?? 0,
+      req.body.threshold ?? 0,
+      req.body.alert_level ?? "Low",
+    ];
+
+    const [result] = await connection.execute(q, values);
+    connection.release();
+
+    console.log("Stock alert added:", result);
+    return res.json({ message: "Stock alert added successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Update alert
+app.put("/stock-alerts/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const alertId = req.params.id;
+    const q = `
+      UPDATE stock_alerts 
+      SET product = ?, current_stock = ?, threshold = ?, alert_level = ?
+      WHERE alert_id = ?
+    `;
+    const values = [
+      req.body.product,
+      req.body.current_stock ?? 0,
+      req.body.threshold ?? 0,
+      req.body.alert_level ?? "Low",
+    ];
+
+    const [result] = await connection.execute(q, [...values, alertId]);
+    connection.release();
+    return res.json({ message: "Stock alert updated successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete alert
+app.delete("/stock-alerts/:id", async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const alertId = req.params.id;
+    const q = "DELETE FROM stock_alerts WHERE alert_id = ?";
+
+    const [result] = await connection.execute(q, [alertId]);
+    connection.release();
+    return res.json({ message: "Stock alert deleted successfully", result });
+  } catch (err) {
+    console.log("MySQL query error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+
+
+
+
 
 
 
